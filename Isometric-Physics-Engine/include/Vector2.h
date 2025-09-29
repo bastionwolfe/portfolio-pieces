@@ -2,22 +2,17 @@
 // I will be implementing an AoS and SoA system for this physics engine. 
 // I might add an AoSoA function later but for now lets focus on the top two
 //    -- Checklist --
-//1. AoS
-//2. SoA
+//1. X AoS
+//2. X SoA
 //3. AoSoA
-//4. implement SIMD 
 
 /*
-
-Utility functions: Distance between two vectors. Maybe angle between vectors if relevant.
-Clamp, lerp (linear interpolation) if useful for your game physics.
-
-Performance considerations: Keep all functions small and inline-able. Pass vectors by value or const reference based on size and usage.
-Avoid unnecessary copying or heap allocations.
-
-Testing: Write unit tests for each operation (add, subtract, dot, length, normalize). Verify edge cases (zero vector normalization, etc.).*/
+                  Function defonition help:
+ 1.
+*/
 #pragma once
 #include <vector>
+#include <iostream>
 
 //square root finder
 float sqrt_approx(float number) {
@@ -152,14 +147,14 @@ float dot(const AoS_Vec2& lhs, const AoS_Vec2& rhs) {
 }
 
 float distancesqr(const AoS_Vec2& lhs, const AoS_Vec2& rhs) {
-    return sqrt_approx((lhs.x - rhs.x) * (lhs.x - rhs.x) + (lhs.y - rhs.y) * (lhs.y - rhs.y));
-}
-
-float distance(const AoS_Vec2& lhs, const AoS_Vec2& rhs) {
     return (lhs.x - rhs.x) * (lhs.x - rhs.x) + (lhs.y - rhs.y) * (lhs.y - rhs.y);
 }
 
-float lerp(const Aos_Vec2& start, const Aos_Vec2& end, float t) {
+float distance(const AoS_Vec2& lhs, const AoS_Vec2& rhs) {
+    return sqrt_approx(distancesqr(lhs, rhs));
+}
+
+AoS_Vec2 lerp(const AoS_Vec2& start, const AoS_Vec2& end, float t) {
     return start + t * (end - start);
 }
 
@@ -229,6 +224,35 @@ public:
 		y[size] = yVal;
 		size++;
     }
+    
+    void addVectorAt(int index, float xVal, float yVal) {
+        if (index != size) {
+            std::cout << "Invalid location";
+            return;
+        }
+        if (size >= capacity) {
+            capacity = (capacity == 0) ? 1 : capacity * 2;
+            x.resize(capacity);
+            y.resize(capacity);
+        }
+    x[index] = xVal;
+    y[index] = yVal;
+    size++;
+    }
+    
+    void addAll(const SoA_Vec2& other) {
+        int limit = (this->size < other.size) ? this->size : other.size;
+        for (int i = 0; i < limit; i++) {
+            this->x[i] += other.x[i];
+            this->y[i] += other.y[i];
+        }
+    }
+    
+    void subVectorAt(int index, float xVal, float yVal) {
+        if (index < 0 || index >= size) return;
+        x[index] -= xVal;
+        y[index] -= yVal;
+    }
 
     void removeVector(int index) {
 		if (index < 0 || index >= size) return;
@@ -236,6 +260,30 @@ public:
 		y[index] = y[size - 1];
 		size--;
 	}
+	
+	void setVectorAt(int index, float xVal, float yVal) {
+        if (index < 0 || index >= size) return;
+        x[index] = xVal;
+        y[index] = yVal;
+    }
+    
+    void scaleVectorAt(int index, float scalar) {
+        if (index < 0 || index >= size) {
+            std::cout << "Invalid index!";
+            return;
+        }
+        x[index] *= scalar;
+        y[index] *= scalar;
+    }
+    
+    void negateAt(int index) {
+        if (index < 0 || index >= size) {
+            std::cout << "Invalid index!";
+            return;
+        }
+        x[index] = -x[index];
+        y[index] = -y[index];
+    }
 
     float magnitude(int i) const {
         return sqrt_approx(x[i] * x[i] + y[i] * y[i]);
@@ -254,10 +302,32 @@ public:
         return mag;
     }
 
-    AoS_Vec2 normalized(int i) const {
+    float normalized(int i) const {
         float mag = magnitude(i);
         if (mag == 0) return AoS_Vec2(0, 0);
         return AoS_Vec2(x[i] / mag, y[i] / mag);
+    }
+    
+    void normalizeAll() {
+    for (int j = 0; j < size; ++j) {
+        float mag = magnitude(j);
+            if (mag > 0) {
+                x[j] /= mag;
+                y[j] /= mag;
+            }
+        }
+    }
+    
+    float distancesqr(int i, int j) {
+        return (x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]);
+    }
+
+    float distance(int i int j) {
+        return sqrt_approx(distancesqr(i, j));
+    }
+    
+    float dotinternal(int i, int j) {
+        return x[i] * x[j] + y[i] * y[j];
     }
 
 private:
@@ -267,4 +337,134 @@ private:
     int capacity;
 };
 
+void scaleAll(float scalar) {
+    for (int i = 0; i < size; ++i) {
+        x[i] *= scalar;
+        y[i] *= scalar;
+    }
+}
 
+void dotAll(const SoA_Vec2& other, std::vector<float>& out) const {
+    int limit = (this->size < other.getSize()) ? this->size : other.getSize();
+    out.resize(limit);
+    for (int i = 0; i < limit; i++) {
+        out[i] = x[i] * other.x[i] + y[i] * other.y[i];
+    }
+}
+
+float dotExternal(int i, const SoA_Vec2& other, int j) const {
+    return x[i] * other.getX(j) + y[i] * other.getY(j);
+}
+
+void copyToAoS(std::vector<AoS_Vec2>& out) {
+    out.resize(size);
+    for (int i = 0; i < size; i++) {
+        out[i].x = x[i];
+        out[i].y = y[i];
+    }
+}
+
+float distanceToExternal(const SoA_Vec2& other, int i) const {
+    return sqrt_approx((x[i] - other.getX(i)) * (x[i] - other.getX(i)) + (y[i] - other.getY(i)) * (y[i] - other.getY(i)));
+}
+
+
+//SoAoS8
+struct Vec2_8 {
+    public:
+    /*
+    Add normalize, magnitude,add, scale
+    */
+    
+        float getX(int index) const {
+            if (index < 0 || index >= 8) {
+                return 0.0f;
+            }
+            return x[index];
+        }   
+        
+        float getY(int index) const {
+            if (index < 0 || index >= 8) {
+                return 0.0f;
+            }
+            return y[index];
+        }
+        
+        float setX(int index, float value) {
+            if (index < 0 || index >=8) {
+                return;
+            }
+            x[index] = value;
+        }
+        
+        float setY(int index, float value) {
+            if (index < 0 || index >=8) {
+                return;
+            }
+            y[index] = value;
+        }
+    
+    
+    private:
+        float x[8];
+        float y[8];
+}
+
+class SoAoS8 {
+    public:
+        std::vector<Vec2_8> blocks;
+        int size = 0;
+        
+        SoAoS8() = default;
+        
+        SoAoS8(int initialsize) : size(intiialsize) {
+            int numBlocks - (initialSize + 7) 8;
+            blocks.resize(numBlocks);
+            
+            for (auto& block : blocks) {
+                for (int i - 0; i < 8; ++i) {
+                    block.x[i] = 0.00f;
+                    block.y[i] = 0.00f;
+                }
+            }
+        }
+        
+        SoAoS8(const SoAoS8& other) 
+            : blocks(other.blocks), size(other.size) {}
+            
+        SoAoS8(SoAoS8&& other) noexcept
+            : blocks(std::move(other.blocks)), size(other.size) {
+            other.size = 0;
+        }
+        
+        SoAoS8(const std::vector<AoS_Vec2>& input) {
+            size = static_cast<int>(input.size());
+            int numBlocks = (size + 7) / 8;
+            blocks.resize(numBlocks);
+
+            for (int i = 0; i < size; ++i) {
+                int blockIndex = i / 8;
+                int innerIndex = i % 8;
+                blocks[blockIndex].x[innerIndex] = input[i].x;
+                blocks[blockIndex].y[innerIndex] = input[i].y;
+            }
+        }
+        
+        SoAoS8(const SoA_Vec2& soa) {
+            size = soa.getSize();
+            int numBlocks = (size + 7) / 8;
+            blocks.resize(numBlocks);
+
+            for (int i = 0; i < size; ++i) {
+                int blockIndex = i / 8;
+                int innerIndex = i % 8;
+                blocks[blockIndex].x[innerIndex] = soa.getX(i);
+                blocks[blockIndex].y[innerIndex] = soa.getY(i);
+            }
+        }
+        
+    
+    
+    private:
+    
+};
