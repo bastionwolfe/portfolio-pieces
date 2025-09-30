@@ -4,7 +4,7 @@
 //    -- Checklist --
 //1. X AoS
 //2. X SoA
-//3. AoSoA
+//3. AoSoA - (Note: At this time AoSoA will only have setters and getters full functions will come later due to time constraints)
 
 /*
                   Function defonition help:
@@ -373,35 +373,35 @@ float distanceToExternal(const SoA_Vec2& other, int i) const {
 struct Vec2_8 {
     public:
     /*
-    Add normalize, magnitude,add, scale
+    Add normalize, magnitude, add, scale
     */
     
-        float getX(int index) const {
-            if (index < 0 || index >= 8) {
+        float getX(int i) const {
+            if (i < 0 || i >= 8) {
                 return 0.0f;
             }
-            return x[index];
+            return x[i];
         }   
         
-        float getY(int index) const {
-            if (index < 0 || index >= 8) {
+        float getY(int i) const {
+            if (i < 0 || i >= 8) {
                 return 0.0f;
             }
-            return y[index];
+            return y[i];
         }
         
-        float setX(int index, float value) {
-            if (index < 0 || index >=8) {
-                return;
+        float setX(int i, float val) {
+            if (i < 0 || i >=8) {
+                return 0.0f;
             }
-            x[index] = value;
+            x[i] = val;
         }
         
-        float setY(int index, float value) {
-            if (index < 0 || index >=8) {
-                return;
+        float setY(int i, float val) {
+            if (i < 0 || i >=8) {
+                return 0.0f;
             }
-            y[index] = value;
+            y[i] = val;
         }
     
     
@@ -412,13 +412,16 @@ struct Vec2_8 {
 
 class SoAoS8 {
     public:
+    /*
+    Add normalize, magnitude, add, scale
+    */
         std::vector<Vec2_8> blocks;
         int size = 0;
         
         SoAoS8() = default;
         
         SoAoS8(int initialsize) : size(intiialsize) {
-            int numBlocks - (initialSize + 7) 8;
+            int numBlocks = (initialSize + 7) 8;
             blocks.resize(numBlocks);
             
             for (auto& block : blocks) {
@@ -463,7 +466,31 @@ class SoAoS8 {
             }
         }
         
-    
+        float getX(int index) const {
+            int blockIndex = index / 8;
+            int innerIndex = index % 8;
+            return blocks[blockIndex].getX(innerIndex);
+        }
+        
+        float getY(int index) const {
+            int blockIndex = index / 8;
+            int innerIndex = index % 8;
+            return blocks[blockIndex].getY(innerIndex);
+        }
+        
+        float setX(int index, float value) {
+            int blockIndex = index / 8;
+            int innerIndex = index % 8;
+            return blocks[blockIndex].setX(innerIndex, value);
+            
+        }
+        
+        float setY(int index, float value) {
+            int blockIndex = index / 8;
+            int innerIndex = index % 8;
+            return blocks[blockIndex].setY(innerIndex, value);
+            
+        }
     
     private:
     
