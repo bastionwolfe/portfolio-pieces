@@ -61,23 +61,18 @@ make
 
 This will build the core physics engine and example simulations.
 
-### Usage
+### Usage - WIP p
 
 Include the engine headers in your C++ project:
 ```bash
-#include "Vec2.h"
-#include "PhysicsObject.h"
-#include "PhysicsWorld.h"
 
-
-// Initialize world, create objects, apply forces, step simulation
 ```
 
 
 Run example binaries in the build/examples directory to see the engine in action:
 
 ```bash
-./simple_sim
+
 ```
 
 ## Core Components
