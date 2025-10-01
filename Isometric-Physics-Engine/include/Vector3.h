@@ -514,6 +514,10 @@ class SoAoS8 {
                 blocks[blockIndex].z[innerIndex] = soa.getZ(i);
             }
         }
+
+		int getSize() const {
+    		return size;
+		}
         
         float getX(int index) const {
             int blockIndex = index / 8;
