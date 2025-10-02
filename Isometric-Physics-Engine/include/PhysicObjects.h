@@ -187,19 +187,19 @@ class PhysicsObjSoA {
     }
 };
 
-class PhysicsObjSoAoS8 {
+class PhysicsObjAoSoA8 {
     public:
-    SoAoS8 positions;
-    SoAoS8 velocities;
-    SoAoS8 accelerations;
-    SoAoS8 forceAccumulators;
+    AoSoA8 positions;
+    AoSoA8 velocities;
+    AoSoA8 accelerations;
+    AoSoA8 forceAccumulators;
     
     std::vector<float> masses;
     std::vector<float> inverseMasses;
     std::vector<float> friction;
     std::vector<float> restitution;
     
-    PhysicsObjSoAoS8(int numObjects)
+    PhysicsObjAoSoA8(int numObjects)
     : positions(numObjects),
       velocities(numObjects),
       accelerations(numObjects),
@@ -209,27 +209,27 @@ class PhysicsObjSoAoS8 {
       friction(numObjects, 0.5f),
       restitution(numObjects, 0.5f) {}
     
-    PhysicsObjSoAoS8(const PhysicsObjSoAoS8& ObjSoAoS8) {
-        positions = ObjSoAoS8.positions;
-        velocities = ObjSoAoS8.velocities;
-        accelerations = ObjSoAoS8.accelerations;
-        forceAccumulators = ObjSoAoS8.forceAccumulators;
-        masses = ObjSoAoS8.masses;
-        inverseMasses = ObjSoAoS8.inverseMasses;
-        friction = ObjSoAoS8.friction;
-        restitution = ObjSoAoS8.restitution;
+    PhysicsObjAoSoA8(const PhysicsObjSoAoS8& ObjAoSoA8) {
+        positions = ObjAoSoA8.positions;
+        velocities = ObjAoSoA8.velocities;
+        accelerations = ObjAoSoA8.accelerations;
+        forceAccumulators = ObjAoSoA8.forceAccumulators;
+        masses = ObjAoSoA8.masses;
+        inverseMasses = ObjAoSoA8.inverseMasses;
+        friction = ObjAoSoA8.friction;
+        restitution = ObjAoSoA8.restitution;
     }
     
-    PhysicsObjSoAoS8& operator =(const PhysicsObjSoAoS8& ObjSoAoS8) {
-        if (this != ObjSoAoS8) {
-            positions = ObjSoAoS8.positions;
-            velocities = ObjSoAoS8.velocities;
-            accelerations = ObjSoAoS8.accelerations;
-            forceAccumulators = ObjSoAoS8.forceAccumulators;
-            masses = ObjSoAoS8.masses;
-            inverseMasses = ObjSoAoS8.inverseMasses;
-            friction = ObjSoAoS8.friction;
-            restitution = ObjSoAoS8.restitution;
+    PhysicsObjAoSoA8& operator =(const PhysicsObjAoSoA8& ObjAoSoA8) {
+        if (this != ObjAoSoA8) {
+            positions = ObjAoSoA8.positions;
+            velocities = ObjAoSoA8.velocities;
+            accelerations = ObjAoSoA8.accelerations;
+            forceAccumulators = ObjAoSoA8.forceAccumulators;
+            masses = ObjAoSoA8.masses;
+            inverseMasses = ObjAoSoA8.inverseMasses;
+            friction = ObjAoSoA8.friction;
+            restitution = ObjAoSoA8.restitution;
         }
         return *this;
     }
