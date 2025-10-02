@@ -4,7 +4,8 @@
 //    -- Checklist --
 //1. X AoS
 //2. X SoA
-//3. AoSoA - (Note: At this time AoSoA will only have setters and getters full functions will come later due to time constraints)
+//3. X AoSoA - (Note: At this time AoSoA will only have setters and getters full functions will come later due to time constraints)
+//4. SIMD conversions where able
 
 /*
                   Function definition help:
@@ -431,7 +432,14 @@ struct Vec3_8 {
 class AoSoA8 {
     public:
     /*
-    Add normalize, magnitude, add, scale
+    
+    Implementing batch operations (e.g., normalize all vectors in the AoSoA8)
+    
+    Adding operators (like +=, *= for scalars) for convenience
+    
+    Adding a method to convert AoSoA8 back to AoS or SoA
+    
+    Adding bounds checking or debugging helpers
     */
         
         AoSoA8() = default;
@@ -527,7 +535,180 @@ class AoSoA8 {
             return blocks[blockIndex].setZ(innerIndex, value);
             
         }
-    
+        
+        void magnitudeAll(std::vector<float>& out) const {
+            out.resize(size);
+            for (int i = 0; i < size; ++i) {
+                float xVal = getX(i);
+                float yVal = getY(i);
+                float zVal = getZ(i);
+                out[i] = sqrt_approx(xVal * xVal + yVal * yVal + zVal * zVal);
+            }
+        }
+        
+        float magnitude(int i) const {
+            float xVal = getX(i);
+            float yVal = getY(i);
+            float zVal = getZ(i);
+            return sqrt_approx(xVal * xVal + yVal * yVal + zVal * zVal);
+        }
+        
+        void scaleAll(float scalar) {
+            for (int i = 0; i < size; ++i) {
+                setX(i, getX(i) * scalar);
+                setY(i, getY(i) * scalar);
+                setZ(i, getZ(i) * scalar);
+            }
+        }
+        
+        void scale(int index, float scalar) {
+                setX(index, getX(index) * scalar);
+                setY(index, getY(index) * scalar);
+                setZ(index, getZ(index) * scalar);
+        }
+        
+        void normalizeAll() {
+            for (int i = 0; i < size; ++i) {
+                float mag = magnitude(i);
+                if (mag > 0) {
+                    setX(i, getX(i) / mag);
+                    setY(i, getY(i) / mag);
+                    setZ(i, getZ(i) / mag);
+                } 
+            }
+        }
+        
+        void normalize(int i) {
+            float mag = magnitude(i);
+            if (mag > 0) {
+                setX(i, getX(i) / mag);
+                setY(i, getY(i) / mag);
+                setZ(i, getZ(i) / mag);
+            }
+        }
+        
+        void addAll(const AoSoA8& other) {
+            int limit = (size < other.size) ? size : other.size;
+            for (int i = 0; i < limit; ++i) {
+                setX(i, getX(i) + other.getX(i));
+                setY(i, getY(i) + other.getY(i));
+                setZ(i, getZ(i) + other.getZ(i));
+            }
+        }
+        
+        void add(const AoSoA8& other, int i) {
+            if (i < size && i < other.size) {
+                setX(i, getX(i) + other.getX(i));
+                setY(i, getY(i) + other.getY(i));
+                setZ(i, getZ(i) + other.getZ(i));
+            }
+        }
+        
+        void subtractAll(const AoSoA8& other) {
+            int limit = (size < other.size) ? size : other.size;
+            for (int i = 0; i < limit; ++i) {
+                setX(i, getX(i) - other.getX(i));
+                setY(i, getY(i) - other.getY(i));
+                setZ(i, getZ(i) - other.getZ(i));
+            }
+        }
+        
+        void subtract(const AoSoA8& other, int i) {
+            if (i < size && i < other.size) {
+                setX(i, getX(i) - other.getX(i));
+                setY(i, getY(i) - other.getY(i));
+                setZ(i, getZ(i) - other.getZ(i));
+            }
+        }
+        
+        void dotAll(const AoSoA8& other, std::vector<float>& out) const {
+            int limit = (size < other.size) ? size : other.size;
+            out.resize(limit);
+            for (int i = 0; i < limit; ++i) {
+                float x1 = getX(i);
+                float y1 = getY(i);
+                float z1 = getZ(i);
+                    
+                float x2 = other.getX(i);
+                float y2 = other.getY(i);
+                float z2 = other.getZ(i);
+            
+                out[i] = x1 * x2 + y1 * y2 + z1 * z2;
+            }
+        }
+        
+        float dot(int i, int j) const {
+            float x1 = getX(i);
+            float y1 = getY(i);
+            float z1 = getZ(i);
+            
+            float x2 = getX(j);
+            float y2 = getY(j);
+            float z2 = getZ(j);
+            
+            return x1 * x2 + y1 * y2 + z1 * z2;
+        }
+        
+        void distanceAll(const AoSoA8& other, std::vector<float>& out) const {
+            int limit = (size < other.size) ? size : other.size;
+            out.resize(limit);
+            for (int i = 0; i < limit; ++i) {
+                float dx = getX(i) - other.getX(i);
+                float dy = getY(i) - other.getY(i);
+                float dz = getZ(i) - other.getZ(i);
+                out[i] = sqrt_approx(dx * dx + dy * dy + dz * dz);
+            }
+        }
+
+        
+        float distance(const AoSoA8& other, int i) const {
+            if (i >= 0 && i < size && i < other.size) {
+                float dx = getX(i) - other.getX(i);
+                float dy = getY(i) - other.getY(i);
+                float dz = getZ(i) - other.getZ(i);
+                return sqrt_approx(dx * dx + dy * dy + dz * dz);
+            }
+            return 0.0f;
+        }
+        
+        void negateAll() {
+            for (int i = 0; i < size; ++i) {
+                setX(i, -getX(i));
+                setY(i, -getY(i));
+                setZ(i, -getZ(i));
+            }
+            
+        }
+        
+        void negate(int i) {
+            if (i >= 0 && i < size) {
+                setX(i, -getX(i));
+                setY(i, -getY(i));
+                setZ(i, -getZ(i));
+            }
+            
+        }
+        
+        std::vector<AoS_Vec3> copyToAoS() const {
+            std::vector<AoS_Vec3> output(size);
+            for (int i = 0; i < size; ++i) {
+                output[i].x = getX(i);
+                output[i].y = getY(i);
+                output[i].z = getZ(i);
+            }
+            return output;
+        }
+        
+        SoA_Vec3 copyToSoA() const {
+            SoA_Vec3 soa(size);
+            for (int i = 0; i < size; ++i) {
+                soa.setX(i, getX(i));
+                soa.setY(i, getY(i));
+                soa.setZ(i, getZ(i));
+            }
+            return soa;
+        }
+        
     private:
     
     std::vector<Vec3_8> blocks;
