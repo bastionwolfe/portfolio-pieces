@@ -7,7 +7,7 @@
 //3. AoSoA - (Note: At this time AoSoA will only have setters and getters full functions will come later due to time constraints)
 
 /*
-                  Function defonition help:
+                  Function definition help:
  1.
 */
 #pragma once
@@ -125,7 +125,7 @@ public:
 
     AoS_Vec3 normalized() const {
         float mag = magnitude();
-        if (mag == 0) return AoS_Vec2(0, 0);
+        if (mag == 0) return AoS_Vec3(0, 0, 0);
         return AoS_Vec3(x / mag, y / mag, z / mag);
     }
 
@@ -170,6 +170,7 @@ AoS_Vec3 lerp(const AoS_Vec3& start, const AoS_Vec3& end, float t) {
 float clamp(float value, float minVal, float maxVal) {
     if (value < minVal) return minVal;
     if (value > maxVal) return maxVal;
+	return value;
 }
 
 
@@ -245,23 +246,6 @@ public:
 		y[size] = yVal;
 		z[size] = zVal;
 		size++;
-    }
-    
-    void addVectorAt(int index, float xVal, float yVal, float zVal) {
-        if (index != size) {
-            std::cout << "Invalid location";
-            return;
-        }
-        if (size >= capacity) {
-            capacity = (capacity == 0) ? 1 : capacity * 2;
-            x.resize(capacity);
-            y.resize(capacity);
-            z.resize(capacity);
-        }
-    x[index] = xVal;
-    y[index] = yVal;
-    z[index] = zVal;
-    size++;
     }
     
     void addAll(const SoA_Vec3& other) {
@@ -349,18 +333,55 @@ public:
             }
         }
     }
-    
+
+	void scaleAll(float scalar) {
+    	for (int i = 0; i < size; ++i) {
+        	x[i] *= scalar;
+        	y[i] *= scalar;
+        	z[i] *= scalar;
+    	}
+	}
+
     float distancesqr(int i, int j) {
-        return (x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]) + (z[i] - z[j]) * (z[i] * z[j]);
+        return (x[i] - x[j]) * (x[i] - x[j]) + (y[i] - y[j]) * (y[i] - y[j]) + (z[i] - z[j]) * (z[i] - z[j]);
     }
 
     float distance(int i, int j) {
         return sqrt_approx(distancesqr(i, j));
     }
     
-    float dotinternal(int i, int j) {
+    float dot(int i, int j) {
         return x[i] * x[j] + y[i] * y[j] + z[i] * z[j];
     }
+
+	float dotExternal(int i, const SoA_Vec3& other, int j) const {
+    	return x[i] * other.getX(j) + y[i] * other.getY(j) + z[i] * other.getZ(j);
+	}
+	
+	void dotAll(const SoA_Vec3& other, std::vector<float>& out) const {
+    	int limit = (this->size < other.getSize()) ? this->size : other.getSize();
+    	out.resize(limit);
+    	for (int i = 0; i < limit; i++) {
+        	out[i] = x[i] * other.x[i] + y[i] * other.y[i] + z[i] * other.z[i];
+    	}	
+	}
+
+	void copyToAoS(std::vector<AoS_Vec3>& out) {
+    	out.resize(size);
+    	for (int i = 0; i < size; i++) {
+        	out[i].x = x[i];
+        	out[i].y = y[i];
+        	out[i].z = z[i];
+    	}
+	}
+
+	float distanceToExternal(const SoA_Vec3& other, int i) const {
+    	return sqrt_approx(
+        	(x[i] - other.getX(i)) * (x[i] - other.getX(i)) +
+        	(y[i] - other.getY(i)) * (y[i] - other.getY(i)) +
+        	(z[i] - other.getZ(i)) * (z[i] - other.getZ(i))
+    	);
+	}
 
 private:
     std::vector<float> x;
@@ -370,45 +391,8 @@ private:
     int capacity;
 };
 
-void scaleAll(float scalar) {
-    for (int i = 0; i < size; ++i) {
-        x[i] *= scalar;
-        y[i] *= scalar;
-        z[i] *= scalar;
-    }
-}
 
-void dotAll(const SoA_Vec3& other, std::vector<float>& out) const {
-    int limit = (this->size < other.getSize()) ? this->size : other.getSize();
-    out.resize(limit);
-    for (int i = 0; i < limit; i++) {
-        out[i] = x[i] * other.x[i] + y[i] * other.y[i] + z[i] * other.z[i];
-    }
-}
-
-float dotExternal(int i, const SoA_Vec3& other, int j) const {
-    return x[i] * other.getX(j) + y[i] * other.getY(j) + z[i] * other.getZ(j);
-}
-
-void copyToAoS(std::vector<AoS_Vec3>& out) {
-    out.resize(size);
-    for (int i = 0; i < size; i++) {
-        out[i].x = x[i];
-        out[i].y = y[i];
-        out[i].z = z[i];
-    }
-}
-
-float distanceToExternal(const SoA_Vec3& other, int i) const {
-    return sqrt_approx(
-        (x[i] - other.getX(i)) * (x[i] - other.getX(i)) +
-        (y[i] - other.getY(i)) * (y[i] - other.getY(i)) +
-        (z[i] - other.getZ(i)) * (z[i] - other.getZ(i))
-    );
-}
-
-
-//SoAoS8
+//AoSoA8
 struct Vec3_8 {
     public:
     /*
@@ -458,15 +442,15 @@ struct Vec3_8 {
         float z[8];
 };
 
-class SoAoS8 {
+class AoSoA8 {
     public:
     /*
     Add normalize, magnitude, add, scale
     */
         
-        SoAoS8() = default;
+        AoSoA8() = default;
         
-        SoAoS8(int initialsize) : size(intialsize) {
+        AoSoA8(int initialSize) : size(initialSize) {
             int numBlocks = (initialSize + 7) / 8;
             blocks.resize(numBlocks);
             
@@ -479,15 +463,15 @@ class SoAoS8 {
             }
         }
         
-        SoAoS8(const SoAoS8& other) 
+        AoSoA8(const AoSoA8& other) 
             : blocks(other.blocks), size(other.size) {}
             
-        SoAoS8(SoAoS8&& other) noexcept
+        AoSoA8(AoSoA8&& other) noexcept
             : blocks(std::move(other.blocks)), size(other.size) {
             other.size = 0;
         }
         
-        SoAoS8(const std::vector<AoS_Vec3>& input) {
+        AoSoA8(const std::vector<AoS_Vec3>& input) {
             size = static_cast<int>(input.size());
             int numBlocks = (size + 7) / 8;
             blocks.resize(numBlocks);
@@ -501,7 +485,7 @@ class SoAoS8 {
             }
         }
         
-        SoAoS8(const SoA_Vec3& soa) {
+        AoSoA8(const SoA_Vec3& soa) {
             size = soa.getSize();
             int numBlocks = (size + 7) / 8;
             blocks.resize(numBlocks);
@@ -537,21 +521,21 @@ class SoAoS8 {
             return blocks[blockIndex].getZ(innerIndex);
         }
         
-        float setX(int index, float value) {
+        void setX(int index, float value) {
             int blockIndex = index / 8;
             int innerIndex = index % 8;
             return blocks[blockIndex].setX(innerIndex, value);
             
         }
         
-        float setY(int index, float value) {
+        void setY(int index, float value) {
             int blockIndex = index / 8;
             int innerIndex = index % 8;
             return blocks[blockIndex].setY(innerIndex, value);
             
         }
         
-        float setZ(int index, float value) {
+        void setZ(int index, float value) {
             int blockIndex = index / 8;
             int innerIndex = index % 8;
             return blocks[blockIndex].setZ(innerIndex, value);
