@@ -197,9 +197,16 @@ class PhysicsObjSoA {
         forceAccumulator[i].z += zForce;
     }
     
-    void applyFriction() {
-        
+    void applyFriction(float gravity = 9.81f) {
+    for (int i = 0; i < velocities.size(); ++i) {
+        float speed = velocities[i].magnitude();
+        if (speed < 1e-5f) continue;
+        float frictionForceMag = friction[i] * masses[i] * gravity;
+        SoA_Vec3 frictionForce = velocities[i].normalized() * (-frictionForceMag);
+        applyForce(i, frictionForce.x, frictionForce.y, frictionForce.z);
     }
+}
+
     
     void setRestitutions(float r, int i) {
         if (r < 0 || r > 1) return;
@@ -363,8 +370,27 @@ class PhysicsObjAoSoA8 {
         forceAccumulators.setZ(i, forceAccumulators.getZ(i) + zForce);
     }
     
-    void applyFriction() {
+    void applyFriction(float gravity = 9.81f) {
+    int count = velocities.getSize();
+
+    for (int i = 0; i < count; ++i) {
+        
+        AoS_Vec3 vel(
+            velocities.getX(i),
+            velocities.getY(i),
+            velocities.getZ(i)
+        );
+
+        float speed = vel.magnitude();
+        if (speed < 1e-5f) continue;
+
+        float frictionForceMag = friction[i] * masses[i] * gravity;
+        AoS_Vec3 frictionForce = vel.normalized() * (-frictionForceMag);
+
+        applyForce(i, frictionForce.x, frictionForce.y, frictionForce.z);
     }
+}
+
     
     void setRestitutions(float r, int i) {
         if (r < 0 || r > 1) return;
