@@ -77,7 +77,7 @@ Run example binaries in the build/examples directory to see the engine in action
 
 ## Core Components
 
-- Vec2 (Vector 2D)
+- Vec3 (Vector 3D)
 
 - Represents 2D vectors with x, y and z coordinates
 
@@ -145,11 +145,9 @@ ctest
 
 ### Completed
 
-- None
+- Vector math primitives
 
 ### In Progress / Planned
-
-- Vector math primitives
 
 - Physics integration (Euler, Verlet)
 
