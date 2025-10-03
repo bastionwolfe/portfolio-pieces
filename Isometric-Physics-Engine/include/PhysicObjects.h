@@ -1,6 +1,7 @@
 //physobjs
 #include <vector>
 #include "Vector3.h"
+#include "physMathUtils.h"
 
 class PhysicsObjAoS {
     public:
@@ -8,6 +9,7 @@ class PhysicsObjAoS {
     AoS_Vec3 velocity;
     AoS_Vec3 acceleration;
     AoS_Vec3 forceAccumulator;
+    AoS_Vec3 previousPosition;
     
     float mass;
     float inverseMass;
@@ -19,6 +21,7 @@ class PhysicsObjAoS {
         velocity = AoS_Vec3(0.00f, 0.00f, 0.00f);
         acceleration = AoS_Vec3(0.00f, 0.00f, 0.00f);
         forceAccumulator = AoS_Vec3(0.00f, 0.00f, 0.00f);
+        previousPosition = position;
         mass = objMass;
         inverseMass = (mass != 0.0f) ? 1.0f / mass : 0.0f;
         friction = 0.50f;
@@ -30,18 +33,20 @@ class PhysicsObjAoS {
         velocity = ObjAoS.velocity;
         acceleration = ObjAoS.acceleration;
         forceAccumulator = ObjAoS.forceAccumulator;
+        previousPosition = ObjAoS.previousPosition;
         mass = ObjAoS.mass;
         inverseMass = ObjAoS.inverseMass;
         friction = ObjAoS.friction;
         restitution = ObjAoS.restitution;
     }
     
-    PhysicsObjAos& operator =(const PhysicsObjAoS& ObjAoS) {
+    PhysicsObjAoS& operator =(const PhysicsObjAoS& ObjAoS) {
         if (this != &ObjAoS) {
             position = ObjAoS.position;
             velocity = ObjAoS.velocity;
             acceleration = ObjAoS.acceleration;
             forceAccumulator = ObjAoS.forceAccumulator;
+            previousPosition = ObjAoS.previousPosition;
             mass = ObjAoS.mass;
             inverseMass = ObjAoS.inverseMass;
             friction = ObjAoS.friction;
@@ -58,17 +63,29 @@ class PhysicsObjAoS {
         position += velocity * dt;
     }
     
+    void integrateVerlet(float dt) {
+        AoS_Vec3 temp = position;
+        position = position * 2.0f - previousPosition + acceleration * (dt * dt);
+        previousPosition = temp;
+    }
+    
     void clearForce() {
         forceAccumulator = AoS_Vec3(0.00f, 0.00f, 0.00f);
     }
     
     void applyForce(float xForce, float yForce, float zForce) {
-        forceAccumulator.x = xForce;
-        forceAccumulator.y = yForce;
-        forceAccumulator.z = zForce;
+        forceAccumulator.x += xForce;
+        forceAccumulator.y += yForce;
+        forceAccumulator.z += zForce;
     }
     
-    void applyFriction() {
+    void applyFriction(float gravity = 9.81f) {
+        float speed = velocity.magnitude();
+        if (speed < 1e-5f) return;
+        
+        float frictionForceMag = friction * mass * gravity;
+        AoS_Vec3 frictionForce = velocity.normalized() * (-frictionForceMage);
+        applyForce(frictionForce.x, frictionForce.y, frictionForce.y);
     }
     
     void setRestitution(float r) {
@@ -77,9 +94,9 @@ class PhysicsObjAoS {
     }
     
     void updateAcceleration() {
-        if (mass == 0) return;
-        accelerations[i] = forceAccumulator[i] * inverseMasses[i];
-        clearForce[i];
+        if (mass == 0.0f) return;
+        acceleration = forceAccumulator * inverseMass;
+        clearForce();
     }
     
 };
@@ -91,6 +108,7 @@ class PhysicsObjSoA {
     std::vector<SoA_Vec3> velocities;
     std::vector<SoA_Vec3> accelerations;
     std::vector<SoA_Vec3> forceAccumulator;
+    std::vector<SoA_Vec3> previousPositions;
     
     std::vector<float> masses;
     std::vector<float> inverseMasses;
@@ -102,6 +120,10 @@ class PhysicsObjSoA {
         velocities.resize(numObjects);
         accelerations.resize(numObjects);
         forceAccumulator.resize(numObjects);
+        previousPositions.resize(numObjects);
+        for (int i = 0; i < numObjects; ++i) {
+            previousPositions[i] = positions[i];
+        }
         masses.resize(numObjects, 1.0f);
         inverseMasses.resize(numObjects, 1.0f);
         friction.resize(numObjects, 0.5f);
@@ -110,7 +132,7 @@ class PhysicsObjSoA {
     
     PhysicsObjSoA(const PhysicsObjSoA& ObjSoA) 
         : positions(ObjSoA.positions), velocities(ObjSoA.velocities), accelerations(ObjSoA.accelerations), forceAccumulator(ObjSoA.forceAccumulator),
-         masses(ObjSoA.masses), inverseMasses(ObjSoA.inverseMasses), friction(ObjSoA.friction), restitution(ObjSoA.restitution) {}
+         previousPositions(ObjSoA.previousPositions), masses(ObjSoA.masses), inverseMasses(ObjSoA.inverseMasses), friction(ObjSoA.friction), restitution(ObjSoA.restitution) {}
 
     PhysicsObjSoA& operator=(const PhysicsObjSoA& ObjSoA) {
         if (this != &ObjSoA) {
@@ -118,6 +140,7 @@ class PhysicsObjSoA {
             velocities = ObjSoA.velocities;
             accelerations = ObjSoA.accelerations;
             forceAccumulator = ObjSoA.forceAccumulator;
+            previousPositions = ObjSoA.previousPositions;
             masses = ObjSoA.masses;
             inverseMasses = ObjSoA.inverseMasses;
             friction = ObjSoA.friction;
@@ -136,6 +159,14 @@ class PhysicsObjSoA {
     void integratePositions(float dt) {
         for (size_t i = 0; i < positions.size(); ++i) {
             positions[i] += velocities[i] * dt;
+        }
+    }
+    
+    void integrateVerlets(float dt) {
+         for (size_t i = 0; i < positions.size(); ++i) {
+            SoA_Vec3 temp = positions[i];
+            positions[i] = positions[i] * 2.0f - previousPositions[i] + accelerations[i] * (dt * dt);
+            previousPositions[i] = temp;
         }
     }
     
@@ -181,7 +212,7 @@ class PhysicsObjSoA {
             for (int i = 0; i < positions.size(); ++i) {
                 if (masses[i] == 0.00f) continue;
                 accelerations[i] = forceAccumulator[i] * inverseMasses[i];
-                clearForce[i];
+                clearForce(i);
             }
         }
     }
@@ -193,6 +224,7 @@ class PhysicsObjAoSoA8 {
     AoSoA8 velocities;
     AoSoA8 accelerations;
     AoSoA8 forceAccumulators;
+    AoSoA8 previousPositions;
     
     std::vector<float> masses;
     std::vector<float> inverseMasses;
@@ -204,16 +236,20 @@ class PhysicsObjAoSoA8 {
       velocities(numObjects),
       accelerations(numObjects),
       forceAccumulators(numObjects),
+      previousPositions(numObjects),
       masses(numObjects, 1.0f),
       inverseMasses(numObjects, 1.0f),
       friction(numObjects, 0.5f),
-      restitution(numObjects, 0.5f) {}
+      restitution(numObjects, 0.5f) {
+          previousPositions = positions;
+          }
     
-    PhysicsObjAoSoA8(const PhysicsObjSoAoS8& ObjAoSoA8) {
+    PhysicsObjAoSoA8(const PhysicsObjAoSoA8& ObjAoSoA8) {
         positions = ObjAoSoA8.positions;
         velocities = ObjAoSoA8.velocities;
         accelerations = ObjAoSoA8.accelerations;
         forceAccumulators = ObjAoSoA8.forceAccumulators;
+        previousPositions = ObjAoSoA8.previousPositions;
         masses = ObjAoSoA8.masses;
         inverseMasses = ObjAoSoA8.inverseMasses;
         friction = ObjAoSoA8.friction;
@@ -221,11 +257,12 @@ class PhysicsObjAoSoA8 {
     }
     
     PhysicsObjAoSoA8& operator =(const PhysicsObjAoSoA8& ObjAoSoA8) {
-        if (this != ObjAoSoA8) {
+        if (this != &ObjAoSoA8) {
             positions = ObjAoSoA8.positions;
             velocities = ObjAoSoA8.velocities;
             accelerations = ObjAoSoA8.accelerations;
             forceAccumulators = ObjAoSoA8.forceAccumulators;
+            previousPositions = ObjAoSoA8.previousPositions;
             masses = ObjAoSoA8.masses;
             inverseMasses = ObjAoSoA8.inverseMasses;
             friction = ObjAoSoA8.friction;
@@ -268,6 +305,38 @@ class PhysicsObjAoSoA8 {
         
     }
     
+    void integrateVerlets(float dt) {
+    int objectCount = positions.getSize();
+
+    for (int i = 0; i < objectCount; ++i) {
+        float px = positions.getX(i);
+        float py = positions.getY(i);
+        float pz = positions.getZ(i);
+
+        float ppx = previousPositions.getX(i);
+        float ppy = previousPositions.getY(i);
+        float ppz = previousPositions.getZ(i);
+
+        float ax = accelerations.getX(i);
+        float ay = accelerations.getY(i);
+        float az = accelerations.getZ(i);
+        float dtSq = dt * dt;
+
+        float newX = 2.0f * px - ppx + ax * dtSq;
+        float newY = 2.0f * py - ppy + ay * dtSq;
+        float newZ = 2.0f * pz - ppz + az * dtSq;
+
+        previousPositions.setX(i, px);
+        previousPositions.setY(i, py);
+        previousPositions.setZ(i, pz);
+
+        positions.setX(i, newX);
+        positions.setY(i, newY);
+        positions.setZ(i, newZ);
+        }
+    }
+
+    
     void inverseMassCalc() {
         for (int i = 0; i < masses.size(); ++i) {
             if (masses[i] == 0) {
@@ -282,16 +351,16 @@ class PhysicsObjAoSoA8 {
     void clearForce() {
         int forceSize = forceAccumulators.getSize();
         for (int i = 0; i < forceSize; ++i) {
-            forceAccumulator.setX(i, 0);
-            forceAccumulator.setY(i, 0);
-            forceAccumulator.setZ(i, 0);
+            forceAccumulators.setX(i, 0);
+            forceAccumulators.setY(i, 0);
+            forceAccumulators.setZ(i, 0);
         }
     }
     
-    void applyForce(int i, float xForce, float yForce, float zForce) {
-        forceAccumulator.setX(i, xForce);
-        forceAccumulator.setY(i, yForce);
-        forceAccumulator.setZ(i, zForce);
+    void applyForce(int i, float xForce, float yForce, float zForce) { 
+        forceAccumulators.setX(i, forceAccumulators.getX(i) + xForce);
+        forceAccumulators.setY(i, forceAccumulators.getY(i) + yForce);
+        forceAccumulators.setZ(i, forceAccumulators.getZ(i) + zForce);
     }
     
     void applyFriction() {
@@ -305,12 +374,12 @@ class PhysicsObjAoSoA8 {
     
     void updateAccelerations() {
         int posSize = positions.getSize();
-        if (posSize == forceAccumulator.getSize() && posSize == masses.size()) {
+        if (posSize == forceAccumulators.getSize() && posSize == masses.size()) {
             for (int i = 0; i < posSize; ++i) {
                 if (masses[i] == 0.00f) continue;
-                accelerations.setX(i, forceAccumulator.getX(i) * inverseMasses.getX(i));
-                accelerations.setY(i, forceAccumulator.getY(i) * inverseMasses.getY(i));
-                accelerations.setZ(i, forceAccumulator.getZ(i) * inverseMasses.getZ(i));
+                accelerations.setX(i, forceAccumulators.getX(i) * inverseMasses[i]);
+                accelerations.setY(i, forceAccumulators.getY(i) * inverseMasses[i]);
+                accelerations.setZ(i, forceAccumulators.getZ(i) * inverseMasses[i]);
             }
             clearForce();
         }
