@@ -55,20 +55,6 @@ class PhysicsObjAoS {
         return *this;
     }
     
-    void integrateVelocity(float dt) {
-        velocity += acceleration * dt;
-    }
-    
-    void integratePosition(float dt) {
-        position += velocity * dt;
-    }
-    
-    void integrateVerlet(float dt) {
-        AoS_Vec3 temp = position;
-        position = position * 2.0f - previousPosition + acceleration * (dt * dt);
-        previousPosition = temp;
-    }
-    
     void clearForce() {
         forceAccumulator = AoS_Vec3(0.00f, 0.00f, 0.00f);
     }
@@ -147,27 +133,6 @@ class PhysicsObjSoA {
             restitution = ObjSoA.restitution;
         }
         return *this;
-    }
-
-
-    void integrateVelocities(float dt) {
-        for (size_t i = 0; i < velocities.size(); ++i) {
-            velocities[i] += accelerations[i] * dt;
-        }
-    }
-
-    void integratePositions(float dt) {
-        for (size_t i = 0; i < positions.size(); ++i) {
-            positions[i] += velocities[i] * dt;
-        }
-    }
-    
-    void integrateVerlets(float dt) {
-         for (size_t i = 0; i < positions.size(); ++i) {
-            SoA_Vec3 temp = positions[i];
-            positions[i] = positions[i] * 2.0f - previousPositions[i] + accelerations[i] * (dt * dt);
-            previousPositions[i] = temp;
-        }
     }
     
     int getSize() const {
@@ -277,72 +242,6 @@ class PhysicsObjAoSoA8 {
         }
         return *this;
     }
-    
-    void integrateVelocities(float dt) {
-        int objectCount = velocities.getSize();
-
-        for (int i = 0; i < objectCount; ++i) {
-            float vx = velocities.getX(i);
-            float vy = velocities.getY(i);
-            float vz = velocities.getZ(i);
-            float ax = accelerations.getX(i);
-            float ay = accelerations.getY(i);
-            float az = accelerations.getZ(i);
-            velocities.setX(i, vx + ax * dt);
-            velocities.setY(i, vy + ay * dt);
-            velocities.setZ(i, vz + az * dt);
-        }
-    }  
-    
-    void integratePositions(float dt) {
-        int objectCount = positions.getSize();
-        
-        for (int i = 0; i < objectCount; ++i) {
-            float px = positions.getX(i);
-            float py = positions.getY(i);
-            float pz = positions.getZ(i);
-            float vx = velocities.getX(i);
-            float vy = velocities.getY(i);
-            float vz = velocities.getZ(i);
-            positions.setX(i, px + vx * dt);
-            positions.setY(i, py + vy * dt);
-            positions.setZ(i, pz + vz * dt);
-        }
-       
-        
-    }
-    
-    void integrateVerlets(float dt) {
-    int objectCount = positions.getSize();
-
-    for (int i = 0; i < objectCount; ++i) {
-        float px = positions.getX(i);
-        float py = positions.getY(i);
-        float pz = positions.getZ(i);
-
-        float ppx = previousPositions.getX(i);
-        float ppy = previousPositions.getY(i);
-        float ppz = previousPositions.getZ(i);
-
-        float ax = accelerations.getX(i);
-        float ay = accelerations.getY(i);
-        float az = accelerations.getZ(i);
-        float dtSq = dt * dt;
-
-        float newX = 2.0f * px - ppx + ax * dtSq;
-        float newY = 2.0f * py - ppy + ay * dtSq;
-        float newZ = 2.0f * pz - ppz + az * dtSq;
-
-        previousPositions.setX(i, px);
-        previousPositions.setY(i, py);
-        previousPositions.setZ(i, pz);
-
-        positions.setX(i, newX);
-        positions.setY(i, newY);
-        positions.setZ(i, newZ);
-        }
-    }
-
     
     void inverseMassCalc() {
         for (int i = 0; i < masses.size(); ++i) {
