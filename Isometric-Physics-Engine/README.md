@@ -146,13 +146,12 @@ ctest
 ### Completed
 
 - Vector math primitives
-
-### In Progress / Planned
-
+  
 - Physics integration (Euler, Verlet)
-
+  
 - Force accumulation and damping
 
+### In Progress / Planned
 - Circle and AABB collision detection
 
 - Impulse-based collision response with friction and restitution
