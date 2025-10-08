@@ -151,8 +151,9 @@ ctest
   
 - Force accumulation and damping
 
+- Circle and AABB collision detection (Partial)
+
 ### In Progress / Planned
-- Circle and AABB collision detection
 
 - Impulse-based collision response with friction and restitution
 
