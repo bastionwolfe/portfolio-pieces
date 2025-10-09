@@ -80,7 +80,7 @@ class SoACollisionShape {
         return *this;
     }
     
-    SoA_Vec3 getMin(int i) {
+    SoA_Vec3 getMin(int i) const {
         return SoA_Vec3 {
             positions[i].x - dimensions[i].x  / 2.0f,
             positions[i].y,
@@ -88,7 +88,7 @@ class SoACollisionShape {
         };
     }
     
-    SOA_Vec3 getMax(int i) {
+    SOA_Vec3 getMax(int i) const {
         return SoA_Vec3 {
             positions[i].x + dimensions[i].x  / 2.0f,
             positions[i].y + dimensions[i].y,
@@ -165,21 +165,81 @@ class AoSoA8CollisionShape() {
         return *this;
     }
     
-    AoSoA8 getMin(int i) {
-        return AoSoA8 {
-            positions[i].x - dimensions[i].x  / 2.0f,
-            positions[i].y,
-            positions[i].z - dimensions[i].z / 2.0f 
-        };
+    Vec3_8 getMin(int i) const {
+        float minX = positions.getX(i) - (dimensions.getX(i) / 2.0f);
+        float minY = positions.getY(i);  // assuming y is bottom
+        float minZ = positions.getZ(i) - (dimensions.getZ(i) / 2.0f);
+    
+        return Vec3_8{ minX, minY, minZ };
+    }
+
+    Vec3_8 getMax(int i) const {
+        float maxX = positions.getX(i) + (dimensions.getX(i) / 2.0f);
+        float maxY = positions.getY(i) + dimensions.getY(i);  // y + height
+        float maxZ = positions.getZ(i) + (dimensions.getZ(i) / 2.0f);
+    
+        return Vec3_8{ minX, minY, minZ };
     }
     
-    AoSoA8 getMax(int i) {
-        return AoSoA8 {
-            positions[i].x + dimensions[i].x  / 2.0f,
-            positions[i].y + dimensions[i].y,
-            positions[i].z + dimensions[i].z / 2.0f
-        };
+    bool AoSoA8AABBInternal() const {
+        int size = positions.getSize();
+        if (dimensions.getSize() != size) {
+            return false;
+        }
+        for (int i = 0; i < size; ++i) {
+            float aMinX = positions.getX(i) - dimensions.getX(i) / 2.0f;
+            float aMaxX = positions.getX(i) + dimensions.getX(i) / 2.0f;
+            float aMinY = positions.getY(i);
+            float aMaxY = positions.getY(i) + dimensions.getY(i);
+            float aMinZ = positions.getZ(i) - dimensions.getZ(i) / 2.0f;
+            float aMaxZ = positions.getZ(i) + dimensions.getZ(i) / 2.0f;
+            for (int j = i + 1; j < size; ++j) {
+                float bMinX = positions.getX(j) - dimensions.getX(j) / 2.0f;
+                float bMaxX = positions.getX(j) + dimensions.getX(j) / 2.0f;
+                float bMinY = positions.getY(j);
+                float bMaxY = positions.getY(j) + dimensions.getY(j);
+                float bMinZ = positions.getZ(j) - dimensions.getZ(j) / 2.0f;
+                float bMaxZ = positions.getZ(j) + dimensions.getZ(j) / 2.0f;
+                bool overlapX = (aMaxX >= bMinX) && (aMinX <= bMaxX);
+                bool overlapY = (aMaxY >= bMinY) && (aMinY <= bMaxY);
+                bool overlapZ = (aMaxZ >= bMinZ) && (aMinZ <= bMaxZ);
+                if (overlapX && overlapY && overlapZ) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+}
+
+bool AoSoA8AABBExternal(const AoSoA8CollisionShape a, const AoSoA8CollisionShape b) {
+    if (a.positions.getSize() != a.dimensions.getSize() || b.positions.getSize() != b.dimensions.getSize()) {
+        return false;
     }
     
-    
+    int numObjectsA = a.positions.getSize();
+    int numObjectsB = b.positions.getSize();
+    for (int i = 0; i < numObjectsA; ++i) {
+        float aMinX = positions.getX(i) - dimensions.getX(i) / 2.0f;
+        float aMaxX = positions.getX(i) + dimensions.getX(i) / 2.0f;
+        float aMinY = positions.getY(i);
+        float aMaxY = positions.getY(i) + dimensions.getY(i);
+        float aMinZ = positions.getZ(i) - dimensions.getZ(i) / 2.0f;
+        float aMaxZ = positions.getZ(i) + dimensions.getZ(i) / 2.0f;
+        for (int j = 0; j < numObjectsB; ++j) {
+            float bMinX = positions.getX(j) - dimensions.getX(j) / 2.0f;
+            float bMaxX = positions.getX(j) + dimensions.getX(j) / 2.0f;
+            float bMinY = positions.getY(j);
+            float bMaxY = positions.getY(j) + dimensions.getY(j);
+            float bMinZ = positions.getZ(j) - dimensions.getZ(j) / 2.0f;
+            float bMaxZ = positions.getZ(j) + dimensions.getZ(j) / 2.0f;
+            bool overlapX = (aMaxX >= bMinX) && (aMinX <= bMaxX);
+            bool overlapY = (aMaxY >= bMinY) && (aMinY <= bMaxY);
+            bool overlapZ = (aMaxZ >= bMinZ) && (aMinZ <= bMaxZ);
+            if (overlapX && overlapY && overlapZ) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
