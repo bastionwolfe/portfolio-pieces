@@ -45,3 +45,38 @@
  *    - Broad-phase queries use bounding volumes expanded for object velocities (temporal expansion).
  *
  */
+
+
+ #include "Vector3.h"
+ #include "circularCollisionDectection.h"
+ #include "AABBCollisionDectection.h"
+ 
+ struct BVH_BroadPhase {
+ }
+ 
+ struct CoarseGrid_BroadPhase {
+ }
+ 
+ struct broadPahse_Manager {
+     
+    addAoS() {
+    }
+    
+    removeAoS(id) {
+    }
+    
+    addSoA() {
+    }
+    
+    removeSoA(id) {
+    }
+    
+    addAoSoA8() {
+    }
+    
+    removeAoSoA8(id) {
+    }
+    
+    getObjID(id) {
+    }
+ }
